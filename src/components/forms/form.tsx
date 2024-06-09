@@ -1,4 +1,6 @@
 import { useForm, SubmitHandler } from "react-hook-form";
+import { useProducts } from "../../services/product-service";
+import { HttpStatus } from "../../constants";
 
 type FormData = {
   name: string;
@@ -7,10 +9,12 @@ type FormData = {
 };
 
 const Form = () => {
+  const { saveProduct, response, productResponse } = useProducts();
   const {
     handleSubmit,
     formState: { errors },
     register,
+    setValue,
   } = useForm<FormData>({
     mode: "all",
     defaultValues: {
@@ -20,12 +24,26 @@ const Form = () => {
     },
   });
 
-  const onSubmit: SubmitHandler<FormData> = (data) => {
-    console.log(data);
+  const onSubmit: SubmitHandler<FormData> = async (data) => {
+    saveProduct(data).then(() => {
+      setValue("name", "");
+      setValue("size", "");
+      setValue("type", "");
+    });
   };
 
   return (
-    <div className="p-4 bg-white shadow-md space-y-4 rounded-md max-w-2xl mx-auto">
+    <div className="p-4 bg-white shadow-md space-y-4 rounded-md max-w-4xl w-full mx-auto">
+      {productResponse && (
+        <div
+          className={`p-4 mb-4 text-sm rounded-lg
+            ${response.status === HttpStatus.CREATED ? "text-green-800 bg-green-50 dark:bg-gray-800 dark:text-green-400" : "text-red-800 bg-red-50"}
+          `}
+          role="alert"
+        >
+          <span className="font-medium">{response.data.message}</span>
+        </div>
+      )}
       <h1 className="text-3xl font-bold mb-6">Create Product</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
@@ -40,7 +58,7 @@ const Form = () => {
             id="name"
             {...register("name", { required: true })}
             className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            placeholder="john.doe@company.com"
+            placeholder="example: Shirt, Pants, T-Shirt, etc."
           />
           {errors.name && (
             <div
@@ -63,7 +81,7 @@ const Form = () => {
             id="size"
             {...register("size", { required: true })}
             className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            placeholder="john.doe@company.com"
+            placeholder="example: l, m, s, xl, xxl"
           />
           {errors.size && (
             <div

@@ -1,13 +1,26 @@
 import { screen, render, fireEvent } from "@testing-library/react";
 import user from "@testing-library/user-event";
 import Form from "./form";
+import { server } from "../../mocks/node";
+import { HttpResponse, http } from "msw";
 
 const getSubmitBtn = () => screen.getByRole("button", { name: /submit/i });
 
+const mockServerError = async (statusCode: number) => {
+  server.use(
+    http.post('/products', () => {
+      return HttpResponse.json(null, {
+        status: statusCode
+      })
+    })
+  )
+};
+
+beforeEach(() => {
+  render(<Form />);
+})
+
 describe("when the form is rendered", () => {
-  beforeEach(() => {
-    render(<Form />);
-  })
   it("should render the form", () => {
     expect(screen.getByRole("heading", { name: /create product/i })).toBeInTheDocument();
   });
@@ -23,10 +36,6 @@ describe("when the form is rendered", () => {
 });
 
 describe("when the user submits the form without values for fields", () => {
-  beforeEach(() => {
-    render(<Form />);
-  })
-
   it("should display validation error messages", async () => {
 
     expect(screen.queryByText(/name is required/i)).not.toBeInTheDocument();
@@ -40,10 +49,6 @@ describe("when the user submits the form without values for fields", () => {
 })
 
 describe("when the user blurs a field that is empty", () => {
-  beforeEach(() => {
-    render(<Form />);
-  })
-
   it("should display validation error message when the user blurs a field that is empty", async () => {
 
     expect(screen.queryByText(/name is required/i)).not.toBeInTheDocument();
@@ -52,5 +57,35 @@ describe("when the user blurs a field that is empty", () => {
     fireEvent.blur(screen.getByLabelText(/name/i));
     expect(await screen.findByText(/name is required/i)).toBeInTheDocument();
 
+  })
+})
+
+describe("when the user submits the form with values for fields", async () => {
+  it("should display success message and reset the form fields", async () => {
+
+    await user.type(screen.getByLabelText(/name/i), "test");
+    await user.type(screen.getByLabelText(/size/i), "test");
+    //fill select for the type product
+    await user.selectOptions(screen.getByRole("combobox"), "electronics");
+    await user.click(getSubmitBtn());
+    expect(await screen.findByText(/product stored successfully/i)).toBeInTheDocument();
+
+    expect(screen.getByLabelText(/name/i)).toHaveValue("");
+    expect(screen.getByLabelText(/size/i)).toHaveValue("");
+    expect(screen.getByRole("combobox")).toHaveValue("");
+  })
+})
+
+describe("when the user submit the form and the server throws an unexpected error", () => {
+  it("should display an appropiate message when the error has status 500", async() => {
+    await mockServerError(500)
+
+    await user.type(screen.getByLabelText(/name/i), "test");
+    await user.type(screen.getByLabelText(/size/i), "test");
+    //fill select for the type product
+    await user.selectOptions(screen.getByRole("combobox"), "electronics");
+    await user.click(getSubmitBtn());
+
+    expect(await screen.findByRole('alert')).toHaveClass("text-red-800");
   })
 })

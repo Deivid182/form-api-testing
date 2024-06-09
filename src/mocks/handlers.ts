@@ -1,15 +1,14 @@
-import { http, HttpResponse, delay } from "msw"
+import { http, HttpResponse } from "msw"
 
 export const handlers = [
   
-  http.post('/login', async () => {
+  http.post('/products', async () => {
     
-    await delay(1000)
 
     return HttpResponse.json({
-      message: "Login successful"
+      message: "Product stored successfully"
     }, {
-      status: 200
+      status: 201
     })
   })
 ]
